@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\ClassLoader\ClassMapGenerator;
+use Illuminate\Database\Schema\Builder;
 
 class GenerateCommand extends Command
 {
@@ -242,6 +243,7 @@ class GenerateCommand extends Command
         if ($columns) {
             foreach ($columns as $column) {
                 $name = $column->getName();
+                $length = $column->getLength();
                 if (in_array($name, $model->getDates())) {
                     $type = 'datetime';
                 } else {
@@ -252,7 +254,7 @@ class GenerateCommand extends Command
                     $name !== $model::UPDATED_AT
                 ) {
                     if(!method_exists($model,'getDeletedAtColumn') || (method_exists($model,'getDeletedAtColumn') && $name !== $model->getDeletedAtColumn())) {
-                        $this->setProperty($name, $type);
+                        $this->setProperty($name, $type, $length);
                     }
                 }
             }
@@ -308,7 +310,7 @@ class GenerateCommand extends Command
      * @param string $name
      * @param string|null $type
      */
-    protected function setProperty($name, $type = null)
+    protected function setProperty($name, $type = null, $length = null)
     {
         if (!isset($this->properties[$name])) {
             $this->properties[$name] = array();
@@ -324,7 +326,7 @@ class GenerateCommand extends Command
         }
 
         $fakeableTypes = [
-            'string' => '$faker->word',
+            'string' => $length === Builder::$defaultStringLength ? '$faker->word'  : '$faker->text(' . $length . ')',
             'text' => '$faker->text',
             'date' => '$faker->date()',
             'time' => '$faker->time()',
